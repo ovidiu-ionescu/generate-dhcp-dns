@@ -1,16 +1,24 @@
-use std::{ fs::File, io::{BufWriter, Write}, };
-use crate::ProcessedLine;
+/// Create the DNS config file for bind
 
-pub fn write_dns_config(lines: &[ProcessedLine]) {
+use std::{ fs::File, io::{BufWriter, Write}, };
+use crate::{ ProcessedLine, ParsedInfo };
+
+pub fn write_dns_config(parsed_info: &ParsedInfo) {
     let file = File::create("./db.ionescu").unwrap();
     let mut out = BufWriter::new(&file);
 
-    let longest = compute_max_name_lenght(lines);
-    for line in lines {
+    parsed_info.dns_prefix.iter()
+        .for_each(|text| { writeln!(out, "{}", text); });
+
+    let longest = compute_max_name_lenght(&parsed_info.ip_lines);
+    for line in &parsed_info.ip_lines {
         if let ProcessedLine::Line { number, text, mac, ip, names } = line {
             write_ip_group(&mut out, ip, &names, longest);
         }
     }
+
+    parsed_info.dns_suffix.iter()
+        .for_each(|text| { writeln!(out, "{}", text); });
 }
 
 fn write_ip_group(out: &mut BufWriter<&File>, ip: &str, names: &[&str], longest: usize ) {

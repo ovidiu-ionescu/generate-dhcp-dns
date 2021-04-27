@@ -17,6 +17,13 @@ pub enum ProcessedLine<'a> {
     }
 }
 
+pub struct ParsedInfo<'a> {
+    pub ip_lines: Vec<ProcessedLine<'a>>,
+    pub domain: &'a str,
+    pub dns_prefix: Vec<&'a str>,
+    pub dns_suffix: Vec<&'a str>,
+}
+
 #[derive(Error, Debug)]
 pub enum ParsingError<'a> {
     #[error("line {0} does not start with a mac or an ip\n {1}")]
@@ -27,12 +34,68 @@ pub enum ParsingError<'a> {
     IoError(#[from] std::io::Error),
     #[error("No server names found on line {0}\n {1}")]
     NoServerNames(usize, &'a str),
+    #[error("DNS prefix section not terminated")]
+    DNSPrefixNotTerminated,
+    #[error("DNS suffix section not terminated")]
+    DNSSuffixNotTerminated,
 }
 
-pub fn process(content: &str) -> Result<Vec<ProcessedLine>, ParsingError> {
-    let processed_lines: Result<Vec<ProcessedLine>, _> = content.lines().enumerate().map(|(number, text)| process_line(number + 1, text)).collect();
-    println!("Result: {:?}", processed_lines);
-    processed_lines
+enum ParsingStatus {
+    IpLines,
+    DNS_PREFIX,
+    DNS_SUFFIX,
+}
+
+pub fn process(content: &str) -> Result<ParsedInfo, ParsingError> {
+
+    /*
+    let processed_lines: Vec<ProcessedLine> = content.lines()
+        .enumerate().map(|(number, text)| Ok(process_line(number + 1, text)?))
+        .collect();
+    */
+
+    let mut parsing_status = ParsingStatus::IpLines;
+    let mut dns_prefix: Vec<&str> = Vec::new();
+    let mut dns_suffix: Vec<&str> = Vec::new();
+
+    let mut ip_lines = Vec::new();
+    for (number, text) in content.lines().enumerate() {
+        match parsing_status {
+            ParsingStatus::DNS_PREFIX => {
+                if text.starts_with("DNS_PREFIX_END") {
+                    parsing_status = ParsingStatus::IpLines;
+                } else {
+                    dns_prefix.push(text);
+                }
+            },
+            ParsingStatus::DNS_SUFFIX => {
+                if text.starts_with("DNS_SUFFIX_END") {
+                    parsing_status = ParsingStatus::IpLines;
+                } else {
+                    dns_suffix.push(text);
+                }
+            },
+            ParsingStatus::IpLines => {
+                if text.starts_with("domain") {
+                } else
+                if text.starts_with("DNS_PREFIX_START") {
+                    parsing_status = ParsingStatus::DNS_PREFIX;
+                } else
+                if text.starts_with("DNS_SUFFIX_START") {
+                    parsing_status = ParsingStatus::DNS_SUFFIX;
+                } else {
+                    ip_lines.push(process_line(number + 1, text)?);
+                }
+            },
+        }
+    }
+
+    match parsing_status {
+        ParsingStatus::DNS_PREFIX => Err(ParsingError::DNSSuffixNotTerminated),
+        ParsingStatus::DNS_SUFFIX => Err(ParsingError::DNSSuffixNotTerminated),
+        ParsingStatus::IpLines => Ok(ParsedInfo { ip_lines, domain: "ionescu.net", dns_prefix, dns_suffix })
+    }
+    
 }
 
 fn remove_comment(line: &str) -> &str {

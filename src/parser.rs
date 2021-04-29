@@ -23,6 +23,9 @@ pub struct ParsedInfo<'a> {
     pub dns_prefix: Vec<&'a str>,
     pub dns_suffix: Vec<&'a str>,
     pub dhcp_prefix: Vec<&'a str>,
+    pub dns_file_name: &'a str,
+    pub reverse_dns_file_name: &'a str,
+    pub dhcp_file_name: &'a str,
 }
 
 #[derive(Error, Debug)]
@@ -49,8 +52,14 @@ pub enum ParsingError<'a> {
     DuplicateHostName(usize, usize, &'a str),
     #[error("No parent domain specified, add line 'domain foo.net'")]
     NoParentDomain,
-    #[error("line {0} bad domain specifier, more than one name\n {1}")]
-    BadParentDomain(usize, &'a str),
+    #[error("No DNS file name specified, add line 'dns_file_name db.foo'")]
+    NoDNSFileName,
+    #[error("No reverse DNS file name specified, add line 'reverse_dns_file_name db.0.0.10'")]
+    NoReverseDNSFileName,
+    #[error("No DHCP file name specified, add line 'dhcp_file_name reservations.conf'")]
+    NoDHCPFileName,
+    #[error("line {0} bad {2} specifier, more than one name\n {1}")]
+    BadValueSpecifier(usize, &'a str, &'a str),
 }
 
 enum ParsingStatus {
@@ -73,6 +82,9 @@ pub fn process(content: &str) -> Result<ParsedInfo, ParsingError> {
     let mut dns_suffix: Vec<&str> = Vec::new();
     let mut dhcp_prefix: Vec<&str> = Vec::new();
     let mut domain: Option<&str> = None;
+    let mut dns_file_name = None::<&str>;
+    let mut reverse_dns_file_name = None::<&str>;
+    let mut dhcp_file_name = None::<&str>;
 
     let mut ip_lines = Vec::new();
     for (number, text) in content.lines().enumerate() {
@@ -107,7 +119,13 @@ pub fn process(content: &str) -> Result<ParsedInfo, ParsingError> {
                     parsing_status = ParsingStatus::DhcpPrefix;
                 } else { 
                     if text.starts_with("domain") {
-                        domain = get_value(text, ParsingError::BadParentDomain(number + 1, text))?;           
+                        domain = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "parent domain"))?;           
+                    } else if text.starts_with("dns_file_name") {
+                        dns_file_name = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "DNS file name"))?;           
+                    } else if text.starts_with("reverse_dns_file_name") {
+                        reverse_dns_file_name = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "reverse DNS file name"))?;           
+                    } else if text.starts_with("dhcp_file_name") {
+                        dhcp_file_name = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "DHCP file name"))?;           
                     } else {
                         ip_lines.push(process_line(number + 1, text)?);
                     }
@@ -119,12 +137,31 @@ pub fn process(content: &str) -> Result<ParsedInfo, ParsingError> {
     if domain.is_none() {
         return Err(ParsingError::NoParentDomain);
     }
+    if dns_file_name.is_none() {
+        return Err(ParsingError::NoDNSFileName);
+    }
+    if reverse_dns_file_name.is_none() {
+        return Err(ParsingError::NoReverseDNSFileName);
+    }
+    if dhcp_file_name.is_none() {
+        return Err(ParsingError::NoDHCPFileName);
+    }
 
     match parsing_status {
         ParsingStatus::DnsPrefix => Err(ParsingError::DNSPrefixNotTerminated),
         ParsingStatus::DnsSuffix => Err(ParsingError::DNSSuffixNotTerminated),
         ParsingStatus::DhcpPrefix => Err(ParsingError::DHCPPrefixNotTerminated),
-        ParsingStatus::IpLines => Ok(ParsedInfo { ip_lines, domain: domain.unwrap(), dns_prefix, dns_suffix, dhcp_prefix })
+        ParsingStatus::IpLines => Ok(
+            ParsedInfo { 
+                ip_lines, 
+                domain: domain.unwrap(), 
+                dns_prefix, 
+                dns_suffix, 
+                dhcp_prefix,
+                dns_file_name: dns_file_name.unwrap(),
+                reverse_dns_file_name: reverse_dns_file_name.unwrap(),
+                dhcp_file_name: dhcp_file_name.unwrap(),
+            })
     }
     
 }

@@ -6,7 +6,9 @@ mod create_dns_config;
 mod create_reverse_dns_config;
 mod create_dhcp_config;
 mod parser;
-use parser::{ process, ProcessedLine, ParsedInfo };
+use parser::{ process, ProcessedLine, ParsedInfo, ParsingError, };
+mod validation;
+use validation::validate;
 
 
 // the data string is never discarded, leak it and make it static
@@ -19,7 +21,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let content = string_to_static_str(fs::read_to_string(file_name).unwrap());
     let res = process(content);
     match res {
-        Ok(parsed_info) => create_output_files(&parsed_info)?,
+        Ok(parsed_info) => {
+            validate(&parsed_info)?;
+            create_output_files(&parsed_info)?
+        },
         Err(e) => println!("Error parsing file {}: {}", file_name, e)
     }
     Ok(())

@@ -45,7 +45,7 @@ pub enum ParsingError<'a> {
     #[error("DHCP prefix section not terminated")]
     DHCPPrefixNotTerminated,
     #[error("Mac address {2} on line {0} is duplicate of line {1}")]
-    DuplicateMacAddress(usize, usize, &'a str),
+    DuplicateMacAddress(usize, usize, String),
     #[error("Ip address {2} on line {0} is duplicate of line {1}")]
     DuplicateIpAddress(usize, usize, &'a str),
     #[error("Host name {2} on line {0} is duplicate of line {1}")]

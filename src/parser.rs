@@ -117,18 +117,18 @@ pub fn process(content: &str) -> Result<ParsedInfo, ParsingError> {
                     parsing_status = ParsingStatus::DnsSuffix;
                 } else if text.starts_with("DHCP_PREFIX_START") {
                     parsing_status = ParsingStatus::DhcpPrefix;
-                } else { 
-                    if text.starts_with("domain") {
-                        domain = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "parent domain"))?;           
-                    } else if text.starts_with("dns_file_name") {
-                        dns_file_name = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "DNS file name"))?;           
-                    } else if text.starts_with("reverse_dns_file_name") {
-                        reverse_dns_file_name = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "reverse DNS file name"))?;           
-                    } else if text.starts_with("dhcp_file_name") {
-                        dhcp_file_name = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "DHCP file name"))?;           
-                    } else {
-                        ip_lines.push(process_line(number + 1, text)?);
-                    }
+
+                } else if text.starts_with("domain") {
+                    domain = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "parent domain"))?;           
+                } else if text.starts_with("dns_file_name") {
+                    dns_file_name = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "DNS file name"))?;           
+                } else if text.starts_with("reverse_dns_file_name") {
+                    reverse_dns_file_name = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "reverse DNS file name"))?;           
+                } else if text.starts_with("dhcp_file_name") {
+                    dhcp_file_name = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "DHCP file name"))?;           
+
+                } else {
+                    ip_lines.push(process_line(number + 1, text)?);
                 }
             },
         }

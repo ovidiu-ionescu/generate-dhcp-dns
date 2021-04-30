@@ -18,14 +18,9 @@ fn check_unique_mac<'a, 'b>(parsed_info: &'a ParsedInfo) -> Result<(), ParsingEr
     for ip_line in i {
         if let ProcessedLine::Line {number, text: _, mac: omac, ip: _, names: _} = ip_line {
             let mac = omac.unwrap();
-        match uniq.get(mac) {
-            Some(line) => {
-                if let ProcessedLine::Line {number: e_number, text: _, mac: _, ip: _, names: _} = line {
-                    return Err(ParsingError::DuplicateMacAddress(*number, *e_number, String::from(mac)));
-                }
-            },
-            None => { uniq.insert(mac, ip_line); },
-        }
+            if let Some(ProcessedLine::Line {number: e_number, text: _, mac: _, ip: _, names: _}) = uniq.insert(mac, ip_line) {
+                return Err(ParsingError::DuplicateMacAddress(*number, *e_number, String::from(mac)));
+            }
         }
     }
     Ok(())

@@ -16,17 +16,18 @@ fn string_to_static_str(s: String) -> &'static str {
     Box::leak(s.into_boxed_str())
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() {
     let file_name = "netconfig.ncf";
-    let content = string_to_static_str(fs::read_to_string(file_name).unwrap());
-    let res = process(content);
-    match res {
-        Ok(parsed_info) => {
-            validate(&parsed_info)?;
-            create_output_files(&parsed_info)?
-        },
-        Err(e) => println!("Error parsing file {}: {}", file_name, e)
+    if let Err(e) = principal(file_name) {
+        eprintln!("Error parsing file {}: {}", file_name, e);
     }
+}
+
+fn principal(file_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let content = string_to_static_str(fs::read_to_string(file_name).unwrap());
+    let parsed_info = process(content)?;
+    validate(&parsed_info)?;
+    create_output_files(&parsed_info)?;
     Ok(())
 }
 

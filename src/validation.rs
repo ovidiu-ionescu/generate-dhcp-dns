@@ -4,6 +4,7 @@ use crate::{ ProcessedLine, ParsedInfo, ParsingError };
 pub fn validate<'a, 'b>(parsed_info: &'a ParsedInfo) -> Result<(), ParsingError<'b>> {
     check_unique_mac(parsed_info)?;
     check_unique_ip(parsed_info)?;
+    check_unique_host(parsed_info)?;
     Ok(())
 }
 
@@ -31,15 +32,31 @@ fn check_unique_ip<'a, 'b>(parsed_info: &'a ParsedInfo) -> Result<(), ParsingErr
     let mut uniq = HashMap::<&str, &ProcessedLine>::new();
     
     let i = parsed_info.ip_lines.iter()
-        .filter(|l| match l { 
-            ProcessedLine::Line {number: _, text: _, mac, ip: _, names: _} => true, 
-            _ => false, 
-        });
+        .filter(|l| matches!(l, ProcessedLine::Line {number: _, text: _, mac: _, ip: _, names: _}) );
 
     for ip_line in i {
         if let ProcessedLine::Line {number, text: _, mac: _, ip, names: _} = ip_line {
             if let Some(ProcessedLine::Line {number: e_number, text: _, mac: _, ip: _, names: _}) = uniq.insert(ip, ip_line) {
                 return Err(ParsingError::DuplicateIpAddress(*number, *e_number, String::from(*ip)));
+            }
+        }
+    }
+    Ok(())
+}
+
+
+fn check_unique_host<'a, 'b>(parsed_info: &'a ParsedInfo) -> Result<(), ParsingError<'b>> {
+    let mut uniq = HashMap::<&str, &ProcessedLine>::new();
+    
+    let i = parsed_info.ip_lines.iter()
+        .filter(|l| matches!(l, ProcessedLine::Line {number: _, text: _, mac: _, ip: _, names: _}) );
+
+    for ip_line in i {
+        if let ProcessedLine::Line {number, text: _, mac: _, ip: _, names} = ip_line {
+            for name in names {
+                if let Some(ProcessedLine::Line {number: e_number, text: _, mac: _, ip: _, names: _}) = uniq.insert(name, ip_line) {
+                    return Err(ParsingError::DuplicateHostName(*number, *e_number, String::from(*name)));
+                }
             }
         }
     }

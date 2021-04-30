@@ -47,9 +47,9 @@ pub enum ParsingError<'a> {
     #[error("Mac address {2} on line {0} is duplicate of line {1}")]
     DuplicateMacAddress(usize, usize, String),
     #[error("Ip address {2} on line {0} is duplicate of line {1}")]
-    DuplicateIpAddress(usize, usize, &'a str),
+    DuplicateIpAddress(usize, usize, String),
     #[error("Host name {2} on line {0} is duplicate of line {1}")]
-    DuplicateHostName(usize, usize, &'a str),
+    DuplicateHostName(usize, usize, String),
     #[error("No parent domain specified, add line 'domain foo.net'")]
     NoParentDomain,
     #[error("No DNS file name specified, add line 'dns_file_name db.foo'")]

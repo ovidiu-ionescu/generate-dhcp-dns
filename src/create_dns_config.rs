@@ -17,6 +17,10 @@ pub fn write_dns_config(parsed_info: &ParsedInfo) -> Result<(), Box<dyn std::err
         }
     }
 
+    if !parsed_info.dns_suffix.is_empty() {
+        writeln!(out)?;
+    }
+
     parsed_info.dns_suffix.iter()
         .try_for_each(|text| writeln!(out, "{}", text))?;
 

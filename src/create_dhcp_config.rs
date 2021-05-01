@@ -14,6 +14,7 @@ pub fn write_reverse_dns_config(parsed_info: &ParsedInfo) -> Result<(), Box<dyn 
         if let ProcessedLine::Line { number: _, text: _, mac, ip: _, names } = line {
             let name = names[0];
             if let Some(mac_address) = mac {
+                writeln!(out)?;
                 if name == "@" {
                     writeln!(out, "host {} {{", parsed_info.domain)?;
                     writeln!(out, "  hardware ethernet {};", mac_address)?; 
@@ -24,7 +25,6 @@ pub fn write_reverse_dns_config(parsed_info: &ParsedInfo) -> Result<(), Box<dyn 
                     writeln!(out, "  fixed-address {name}.{};", parsed_info.domain)?;
                 }
                 writeln!(out, "}}")?;
-                writeln!(out)?;
             }
         }
     }

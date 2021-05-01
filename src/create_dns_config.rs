@@ -12,7 +12,7 @@ pub fn write_dns_config(parsed_info: &ParsedInfo) -> Result<(), Box<dyn std::err
 
     let longest = compute_max_name_lenght(&parsed_info.ip_lines);
     for line in &parsed_info.ip_lines {
-        if let ProcessedLine::Line { number: _, text: _, mac: _, ip, names } = line {
+        if let ProcessedLine::Line { ip, names, .. } = line {
             write_ip_group(&mut out, ip, &names, longest)?;
         }
     }
@@ -39,7 +39,7 @@ fn write_ip_group(out: &mut BufWriter<&File>, ip: &str, names: &[&str], longest:
 fn compute_max_name_lenght(lines: &[ProcessedLine]) -> usize {
     lines.iter()
         .map(|x| match x {
-            ProcessedLine::Line { number: _, text: _, mac: _, ip: _, names } => 
+            ProcessedLine::Line { names, .. } => 
                 names.iter().map(|s| s.len()).max().unwrap(),
             _ => 0
         }).max().unwrap()

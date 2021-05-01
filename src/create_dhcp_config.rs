@@ -11,7 +11,7 @@ pub fn write_reverse_dns_config(parsed_info: &ParsedInfo) -> Result<(), Box<dyn 
         .try_for_each(|text| writeln!(out, "{}", text))?;
 
     for line in &parsed_info.ip_lines {
-        if let ProcessedLine::Line { number: _, text: _, mac, ip: _, names } = line {
+        if let ProcessedLine::Line { mac, names, .. } = line {
             let name = names[0];
             if let Some(mac_address) = mac {
                 writeln!(out)?;

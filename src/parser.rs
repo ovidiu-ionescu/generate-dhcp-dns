@@ -154,16 +154,17 @@ fn remove_comment(line: &str) -> &str {
 
 fn get_value<'a>(text: &'a str, number: usize, value_name: &'static str) -> Result<Option<&'a str>, ParsingError<'a>> {
     let active_text = remove_comment(text).trim();
-    let mut i = active_text.split(' ')
+    let mut i = active_text.split_whitespace()
         .filter(|x| !x.is_empty());
 
     // skip past the key, it's already been handled by the caller
     i.next(); 
     let value = i.next();
-    if value.is_none() {
+    if let None = value {
         return Err(ParsingError::BadValueSpecifier(number + 1, text, value_name));
     }
-    if i.next().is_some() {
+    if let Some(_) = i.next() {
+        // there's unexpected trailing text
         return Err(ParsingError::BadValueSpecifier(number + 1, text, value_name));
     }
     Ok(value)

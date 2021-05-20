@@ -88,6 +88,7 @@ pub fn process(content: &str) -> Result<ParsedInfo, ParsingError> {
 
     let mut ip_lines = Vec::new();
     for (number, text) in content.lines().enumerate() {
+        let token = get_token(text);
         match parsing_status {
             ParsingStatus::DnsPrefix => {
                 if text.starts_with("DNS_PREFIX_END") {
@@ -111,24 +112,17 @@ pub fn process(content: &str) -> Result<ParsedInfo, ParsingError> {
                 }
             },
             ParsingStatus::IpLines => {
-                if text.starts_with("DNS_PREFIX_START") {
-                    parsing_status = ParsingStatus::DnsPrefix;
-                } else if text.starts_with("DNS_SUFFIX_START") {
-                    parsing_status = ParsingStatus::DnsSuffix;
-                } else if text.starts_with("DHCP_PREFIX_START") {
-                    parsing_status = ParsingStatus::DhcpPrefix;
+                match token {
+                    "DNS_PREFIX_START" => parsing_status = ParsingStatus::DnsPrefix,
+                    "DNS_SUFFIX_START" => parsing_status = ParsingStatus::DnsSuffix,
+                    "DHCP_PREFIX_START"=>  parsing_status = ParsingStatus::DhcpPrefix,
 
-                } else if text.starts_with("domain") {
-                    domain = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "parent domain"))?;           
-                } else if text.starts_with("dns_file_name") {
-                    dns_file_name = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "DNS file name"))?;           
-                } else if text.starts_with("reverse_dns_file_name") {
-                    reverse_dns_file_name = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "reverse DNS file name"))?;           
-                } else if text.starts_with("dhcp_file_name") {
-                    dhcp_file_name = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "DHCP file name"))?;           
+                    "domain" => domain = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "parent domain"))?,
+                    "dns_file_name" => dns_file_name = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "DNS file name"))?,
+                    "reverse_dns_file_name"=> reverse_dns_file_name = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "reverse DNS file name"))?,
+                    "dhcp_file_name" => dhcp_file_name = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "DHCP file name"))?,
 
-                } else {
-                    ip_lines.push(process_line(number + 1, text)?);
+                    _ => ip_lines.push(process_line(number + 1, text)?),
                 }
             },
         }
@@ -185,6 +179,10 @@ fn get_value<'a, 'b>(text: &'a str, err: ParsingError<'b>) -> Result<Option<&'a 
         return Err(err);
     }
     Ok(value)
+}
+
+fn get_token(text: &str) -> &str {
+    text.split_whitespace().next().unwrap_or("")
 }
 
 fn process_line(number: usize, text: &str) -> Result<ProcessedLine, ParsingError> {

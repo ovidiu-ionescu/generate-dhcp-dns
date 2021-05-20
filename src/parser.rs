@@ -116,16 +116,16 @@ pub fn process(content: &str) -> Result<ParsedInfo, ParsingError> {
         }
     }
 
-    if domain.is_none() {
+    if let None = domain {
         return Err(ParsingError::NoParentDomain);
     }
-    if dns_file_name.is_none() {
+    if let None = dns_file_name {
         return Err(ParsingError::NoDNSFileName);
     }
-    if reverse_dns_file_name.is_none() {
+    if let None = reverse_dns_file_name {
         return Err(ParsingError::NoReverseDNSFileName);
     }
-    if dhcp_file_name.is_none() {
+    if let None = dhcp_file_name {
         return Err(ParsingError::NoDHCPFileName);
     }
 
@@ -186,7 +186,7 @@ fn process_line(number: usize, text: &str) -> Result<ProcessedLine, ParsingError
     let mut term = eit.next();
 
     // can this happen? We already checked for an empty line
-    if term.is_none() {
+    if let None = term {
         // text is empty, return a noop
         return Ok(ProcessedLine::NoOp{ number, text });
     }
@@ -205,10 +205,9 @@ fn process_line(number: usize, text: &str) -> Result<ProcessedLine, ParsingError
 
     // IP address is mandatory
     if term.is_none() || !IP.is_match(term.unwrap()) {
-        if mac.is_none() {
-            return Err(ParsingError::NoMacOrIp(number, text));
-        } else {
-            return Err(ParsingError::NoIpAddress(number, text));
+        return match mac {
+            None => Err(ParsingError::NoMacOrIp(number, text)),
+            _    => Err(ParsingError::NoIpAddress(number, text)),
         }
     }
     let ip = term.unwrap();

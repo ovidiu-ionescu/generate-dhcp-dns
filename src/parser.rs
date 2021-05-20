@@ -89,38 +89,26 @@ pub fn process(content: &str) -> Result<ParsedInfo, ParsingError> {
     let mut ip_lines = Vec::new();
     for (number, text) in content.lines().enumerate() {
         let token = get_token(text);
-        match parsing_status {
-            ParsingStatus::DnsPrefix => {
-                if text.starts_with("DNS_PREFIX_END") {
-                    parsing_status = ParsingStatus::IpLines;
-                } else {
-                    dns_prefix.push(text);
-                }
-            },
-            ParsingStatus::DnsSuffix => {
-                if text.starts_with("DNS_SUFFIX_END") {
-                    parsing_status = ParsingStatus::IpLines;
-                } else {
-                    dns_suffix.push(text);
-                }
-            },
-            ParsingStatus::DhcpPrefix => {
-                if text.starts_with("DHCP_PREFIX_END") {
-                    parsing_status = ParsingStatus::IpLines;
-                } else {
-                    dhcp_prefix.push(text);
-                }
-            },
-            ParsingStatus::IpLines => {
-                match token {
-                    "DNS_PREFIX_START" => parsing_status = ParsingStatus::DnsPrefix,
-                    "DNS_SUFFIX_START" => parsing_status = ParsingStatus::DnsSuffix,
-                    "DHCP_PREFIX_START"=>  parsing_status = ParsingStatus::DhcpPrefix,
+        match (&parsing_status, token) {
+            (ParsingStatus::DnsPrefix, "DNS_PREFIX_END") => parsing_status = ParsingStatus::IpLines,
+            (ParsingStatus::DnsPrefix, _) => dns_prefix.push(text),
 
-                    "domain" => domain = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "parent domain"))?,
-                    "dns_file_name" => dns_file_name = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "DNS file name"))?,
-                    "reverse_dns_file_name"=> reverse_dns_file_name = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "reverse DNS file name"))?,
-                    "dhcp_file_name" => dhcp_file_name = get_value(text, ParsingError::BadValueSpecifier(number + 1, text, "DHCP file name"))?,
+            (ParsingStatus::DnsSuffix, "DNS_SUFFIX_END") => parsing_status = ParsingStatus::IpLines,
+            (ParsingStatus::DnsSuffix, _) => dns_suffix.push(text),
+
+            (ParsingStatus::DhcpPrefix, "DHCP_PREFIX_END") => parsing_status = ParsingStatus::IpLines,
+            (ParsingStatus::DhcpPrefix, _) => dhcp_prefix.push(text),
+
+            (ParsingStatus::IpLines, _) => {
+                match token {
+                    "DNS_PREFIX_START"  => parsing_status = ParsingStatus::DnsPrefix,
+                    "DNS_SUFFIX_START"  => parsing_status = ParsingStatus::DnsSuffix,
+                    "DHCP_PREFIX_START" => parsing_status = ParsingStatus::DhcpPrefix,
+
+                    "domain"                => domain = get_value(text, number, "parent domain")?,
+                    "dns_file_name"         => dns_file_name = get_value(text, number, "DNS file name")?,
+                    "reverse_dns_file_name" => reverse_dns_file_name = get_value(text, number, "reverse DNS file name")?,
+                    "dhcp_file_name"        => dhcp_file_name = get_value(text, number, "DHCP file name")?,
 
                     _ => ip_lines.push(process_line(number + 1, text)?),
                 }
@@ -164,7 +152,7 @@ fn remove_comment(line: &str) -> &str {
     line.split(';').next().unwrap_or("").trim()
 }
 
-fn get_value<'a, 'b>(text: &'a str, err: ParsingError<'b>) -> Result<Option<&'a str>, ParsingError<'b>> {
+fn get_value<'a>(text: &'a str, number: usize, value_name: &'static str) -> Result<Option<&'a str>, ParsingError<'a>> {
     let active_text = remove_comment(text).trim();
     let mut i = active_text.split(' ')
         .filter(|x| !x.is_empty());
@@ -173,10 +161,10 @@ fn get_value<'a, 'b>(text: &'a str, err: ParsingError<'b>) -> Result<Option<&'a 
     i.next(); 
     let value = i.next();
     if value.is_none() {
-        return Err(err);
+        return Err(ParsingError::BadValueSpecifier(number + 1, text, value_name));
     }
     if i.next().is_some() {
-        return Err(err);
+        return Err(ParsingError::BadValueSpecifier(number + 1, text, value_name));
     }
     Ok(value)
 }

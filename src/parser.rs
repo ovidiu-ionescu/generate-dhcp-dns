@@ -44,12 +44,6 @@ pub enum ParsingError<'a> {
     DNSSuffixNotTerminated,
     #[error("DHCP prefix section not terminated")]
     DHCPPrefixNotTerminated,
-    #[error("Mac address {2} on line {0} is duplicate of line {1}")]
-    DuplicateMacAddress(usize, usize, String),
-    #[error("Ip address {2} on line {0} is duplicate of line {1}")]
-    DuplicateIpAddress(usize, usize, String),
-    #[error("Host name {2} on line {0} is duplicate of line {1}")]
-    DuplicateHostName(usize, usize, String),
     #[error("No parent domain specified, add line 'domain foo.net'")]
     NoParentDomain,
     #[error("No DNS file name specified, add line 'dns_file_name db.foo'")]
@@ -116,16 +110,16 @@ pub fn process(content: &str) -> Result<ParsedInfo, ParsingError> {
         }
     }
 
-    if let None = domain {
+    if domain.is_none() {
         return Err(ParsingError::NoParentDomain);
     }
-    if let None = dns_file_name {
+    if dns_file_name.is_none() {
         return Err(ParsingError::NoDNSFileName);
     }
-    if let None = reverse_dns_file_name {
+    if reverse_dns_file_name.is_none() {
         return Err(ParsingError::NoReverseDNSFileName);
     }
-    if let None = dhcp_file_name {
+    if dhcp_file_name.is_none() {
         return Err(ParsingError::NoDHCPFileName);
     }
 
@@ -160,10 +154,10 @@ fn get_value<'a>(text: &'a str, number: usize, value_name: &'static str) -> Resu
     // skip past the key, it's already been handled by the caller
     i.next(); 
     let value = i.next();
-    if let None = value {
+    if value.is_none() {
         return Err(ParsingError::BadValueSpecifier(number + 1, text, value_name));
     }
-    if let Some(_) = i.next() {
+    if i.next().is_some() {
         // there's unexpected trailing text
         return Err(ParsingError::BadValueSpecifier(number + 1, text, value_name));
     }
@@ -186,7 +180,7 @@ fn process_line(number: usize, text: &str) -> Result<ProcessedLine, ParsingError
     let mut term = eit.next();
 
     // can this happen? We already checked for an empty line
-    if let None = term {
+    if term.is_none() {
         // text is empty, return a noop
         return Ok(ProcessedLine::NoOp{ number, text });
     }

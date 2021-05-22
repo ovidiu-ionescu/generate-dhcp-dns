@@ -28,14 +28,12 @@ pub struct ParsedInfo<'a> {
     pub dhcp_file_name: &'a str,
 }
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq)]
 pub enum ParsingError<'a> {
     #[error("line {0} does not start with a mac or an ip\n {1}")]
     NoMacOrIp(usize, &'a str),
     #[error("line {0} does not have an IP address\n {1}")]
     NoIpAddress(usize, &'a str),
-    #[error("Can not IO")]
-    IoError(#[from] std::io::Error),
     #[error("No server names found on line {0}\n {1}")]
     NoServerNames(usize, &'a str),
     #[error("DNS prefix section not terminated")]
@@ -56,6 +54,12 @@ pub enum ParsingError<'a> {
     BadValueSpecifier(usize, &'a str, &'a str),
 }
 
+/// Represents the current parsing stage. IpLines are the regular lines 
+/// like:
+/// 10:00:00:00:00:aa 10.0.0.1 host1.net host2.net ; Comment
+/// or:
+/// domain mydomain.net
+/// The others represent all the other sections
 enum ParsingStatus {
     IpLines,
     DnsPrefix,
@@ -63,13 +67,7 @@ enum ParsingStatus {
     DhcpPrefix,
 }
 
-pub fn process(content: &str) -> Result<ParsedInfo, ParsingError> {
-
-    /*
-    let processed_lines: Vec<ProcessedLine> = content.lines()
-        .enumerate().map(|(number, text)| Ok(process_line(number + 1, text)?))
-        .collect();
-    */
+pub fn parse(content: &str) -> Result<ParsedInfo, ParsingError> {
 
     let mut parsing_status = ParsingStatus::IpLines;
     let mut dns_prefix: Vec<&str> = Vec::new();

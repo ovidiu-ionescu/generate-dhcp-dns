@@ -4,13 +4,12 @@ mod create_dns_config;
 mod create_reverse_dns_config;
 mod create_dhcp_config;
 mod parser;
-use parser::{process, ProcessedLine, ParsedInfo};
+use parser::{parse, ProcessedLine, ParsedInfo};
 mod validation;
 use validation::validate;
-pub use validation::ValidationError;
 
 pub fn principal(content: &str) -> Result<(), Box<dyn std::error::Error + '_>> {
-    let parsed_info = process(content)?;
+    let parsed_info = parse(content)?;
     validate(&parsed_info)?;
     create_output_files(&parsed_info)?;
     Ok(())

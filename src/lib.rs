@@ -1,4 +1,5 @@
 #![feature(format_args_capture)]
+#![feature(stmt_expr_attributes)]
 
 mod create_dns_config;
 mod create_reverse_dns_config;

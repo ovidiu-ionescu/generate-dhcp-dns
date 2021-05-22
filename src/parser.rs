@@ -6,26 +6,26 @@ use regex::Regex;
 pub enum ProcessedLine<'a> {
     NoOp {
         number: usize,
-        text: &'a str,
+        text:   &'a str,
     },
     Line {
         number: usize,
-        text: &'a str,
-        mac: Option<&'a str>,
-        ip: &'a str,
-        names: Vec<&'a str>,
+        text:   &'a str,
+        mac:    Option<&'a str>,
+        ip:     &'a str,
+        names:  Vec<&'a str>,
     }
 }
 
 pub struct ParsedInfo<'a> {
-    pub ip_lines: Vec<ProcessedLine<'a>>,
-    pub domain: &'a str,
-    pub dns_prefix: Vec<&'a str>,
-    pub dns_suffix: Vec<&'a str>,
-    pub dhcp_prefix: Vec<&'a str>,
-    pub dns_file_name: &'a str,
+    pub ip_lines:              Vec<ProcessedLine<'a>>,
+    pub domain:                &'a str,
+    pub dns_prefix:            Vec<&'a str>,
+    pub dns_suffix:            Vec<&'a str>,
+    pub dhcp_prefix:           Vec<&'a str>,
+    pub dns_file_name:         &'a str,
     pub reverse_dns_file_name: &'a str,
-    pub dhcp_file_name: &'a str,
+    pub dhcp_file_name:        &'a str,
 }
 
 #[derive(Error, Debug, PartialEq)]
@@ -81,28 +81,29 @@ pub fn parse(content: &str) -> Result<ParsedInfo, ParsingError> {
     let mut ip_lines = Vec::new();
     for (number, text) in content.lines().enumerate() {
         let token = get_token(text);
+        #[rustfmt::skip]
         match (&parsing_status, token) {
-            (ParsingStatus::DnsPrefix, "DNS_PREFIX_END") => parsing_status = ParsingStatus::IpLines,
-            (ParsingStatus::DnsPrefix, _) => dns_prefix.push(text),
+            (ParsingStatus::DnsPrefix, "DNS_PREFIX_END")   => parsing_status = ParsingStatus::IpLines,
+            (ParsingStatus::DnsPrefix, _)                  => dns_prefix.push(text),
 
-            (ParsingStatus::DnsSuffix, "DNS_SUFFIX_END") => parsing_status = ParsingStatus::IpLines,
-            (ParsingStatus::DnsSuffix, _) => dns_suffix.push(text),
+            (ParsingStatus::DnsSuffix, "DNS_SUFFIX_END")   => parsing_status = ParsingStatus::IpLines,
+            (ParsingStatus::DnsSuffix, _)                  => dns_suffix.push(text),
 
             (ParsingStatus::DhcpPrefix, "DHCP_PREFIX_END") => parsing_status = ParsingStatus::IpLines,
-            (ParsingStatus::DhcpPrefix, _) => dhcp_prefix.push(text),
+            (ParsingStatus::DhcpPrefix, _)                 => dhcp_prefix.push(text),
 
-            (ParsingStatus::IpLines, _) => {
+            (ParsingStatus::IpLines, _)                    => {
                 match token {
-                    "DNS_PREFIX_START"  => parsing_status = ParsingStatus::DnsPrefix,
-                    "DNS_SUFFIX_START"  => parsing_status = ParsingStatus::DnsSuffix,
-                    "DHCP_PREFIX_START" => parsing_status = ParsingStatus::DhcpPrefix,
+                    "DNS_PREFIX_START"      => parsing_status = ParsingStatus::DnsPrefix,
+                    "DNS_SUFFIX_START"      => parsing_status = ParsingStatus::DnsSuffix,
+                    "DHCP_PREFIX_START"     => parsing_status = ParsingStatus::DhcpPrefix,
 
                     "domain"                => domain = get_value(text, number, "parent domain")?,
                     "dns_file_name"         => dns_file_name = get_value(text, number, "DNS file name")?,
                     "reverse_dns_file_name" => reverse_dns_file_name = get_value(text, number, "reverse DNS file name")?,
                     "dhcp_file_name"        => dhcp_file_name = get_value(text, number, "DHCP file name")?,
 
-                    _ => ip_lines.push(process_line(number + 1, text)?),
+                    _                       => ip_lines.push(process_line(number + 1, text)?),
                 }
             },
         }
@@ -122,10 +123,10 @@ pub fn parse(content: &str) -> Result<ParsedInfo, ParsingError> {
     }
 
     match parsing_status {
-        ParsingStatus::DnsPrefix => Err(ParsingError::DNSPrefixNotTerminated),
-        ParsingStatus::DnsSuffix => Err(ParsingError::DNSSuffixNotTerminated),
+        ParsingStatus::DnsPrefix  => Err(ParsingError::DNSPrefixNotTerminated),
+        ParsingStatus::DnsSuffix  => Err(ParsingError::DNSSuffixNotTerminated),
         ParsingStatus::DhcpPrefix => Err(ParsingError::DHCPPrefixNotTerminated),
-        ParsingStatus::IpLines => Ok(
+        ParsingStatus::IpLines    => Ok(
             ParsedInfo { 
                 ip_lines, 
                 domain: domain.unwrap(), 

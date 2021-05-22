@@ -2,16 +2,11 @@ use ::generate_dhcp_dns::principal;
 use indoc::indoc;
 
 macro_rules! check_err {
-    ($val:expr, $msg:literal) => {
-        {
-            let res = &$val; 
-            assert!(res.is_err());
-            assert_eq!(
-                $msg,
-                res.as_ref().unwrap_err().to_string()
-            );
-        }
-    };
+    ($val:expr, $msg:literal) => {{
+        let res = &$val;
+        assert!(res.is_err());
+        assert_eq!($msg, res.as_ref().unwrap_err().to_string());
+    }};
 }
 
 #[test]
@@ -42,7 +37,7 @@ fn test_duplicate_mac() {
       dhcp_file_name reservations.conf
     "};
     check_err!(principal(s), "Mac address 10:00:00:00:00:aa on line 2 is duplicate of line 1");
- }
+}
 
 #[test]
 fn test_duplicate_hostname() {

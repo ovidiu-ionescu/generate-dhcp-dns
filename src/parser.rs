@@ -1,20 +1,11 @@
-use thiserror::Error;
 use lazy_static::lazy_static;
 use regex::Regex;
+use thiserror::Error;
 
 #[derive(Debug)]
 pub enum ProcessedLine<'a> {
-    NoOp {
-        number: usize,
-        text:   &'a str,
-    },
-    Line {
-        number: usize,
-        text:   &'a str,
-        mac:    Option<&'a str>,
-        ip:     &'a str,
-        names:  Vec<&'a str>,
-    }
+    NoOp { number: usize, text: &'a str },
+    Line { number: usize, text: &'a str, mac: Option<&'a str>, ip: &'a str, names: Vec<&'a str> },
 }
 
 pub struct ParsedInfo<'a> {
@@ -54,7 +45,7 @@ pub enum ParsingError<'a> {
     BadValueSpecifier(usize, &'a str, &'a str),
 }
 
-/// Represents the current parsing stage. IpLines are the regular lines 
+/// Represents the current parsing stage. IpLines are the regular lines
 /// like:
 /// 10:00:00:00:00:aa 10.0.0.1 host1.net host2.net ; Comment
 /// or:
@@ -68,7 +59,6 @@ enum ParsingStatus {
 }
 
 pub fn parse(content: &str) -> Result<ParsedInfo, ParsingError> {
-
     let mut parsing_status = ParsingStatus::IpLines;
     let mut dns_prefix: Vec<&str> = Vec::new();
     let mut dns_suffix: Vec<&str> = Vec::new();
@@ -123,35 +113,30 @@ pub fn parse(content: &str) -> Result<ParsedInfo, ParsingError> {
     }
 
     match parsing_status {
-        ParsingStatus::DnsPrefix  => Err(ParsingError::DNSPrefixNotTerminated),
-        ParsingStatus::DnsSuffix  => Err(ParsingError::DNSSuffixNotTerminated),
+        ParsingStatus::DnsPrefix => Err(ParsingError::DNSPrefixNotTerminated),
+        ParsingStatus::DnsSuffix => Err(ParsingError::DNSSuffixNotTerminated),
         ParsingStatus::DhcpPrefix => Err(ParsingError::DHCPPrefixNotTerminated),
-        ParsingStatus::IpLines    => Ok(
-            ParsedInfo { 
-                ip_lines, 
-                domain: domain.unwrap(), 
-                dns_prefix, 
-                dns_suffix, 
-                dhcp_prefix,
-                dns_file_name: dns_file_name.unwrap(),
-                reverse_dns_file_name: reverse_dns_file_name.unwrap(),
-                dhcp_file_name: dhcp_file_name.unwrap(),
-            })
+        ParsingStatus::IpLines => Ok(ParsedInfo {
+            ip_lines,
+            domain: domain.unwrap(),
+            dns_prefix,
+            dns_suffix,
+            dhcp_prefix,
+            dns_file_name: dns_file_name.unwrap(),
+            reverse_dns_file_name: reverse_dns_file_name.unwrap(),
+            dhcp_file_name: dhcp_file_name.unwrap(),
+        }),
     }
-    
 }
 
-fn remove_comment(line: &str) -> &str {
-    line.split(';').next().unwrap_or("").trim()
-}
+fn remove_comment(line: &str) -> &str { line.split(';').next().unwrap_or("").trim() }
 
 fn get_value<'a>(text: &'a str, number: usize, value_name: &'static str) -> Result<Option<&'a str>, ParsingError<'a>> {
     let active_text = remove_comment(text).trim();
-    let mut i = active_text.split_whitespace()
-        .filter(|x| !x.is_empty());
+    let mut i = active_text.split_whitespace().filter(|x| !x.is_empty());
 
     // skip past the key, it's already been handled by the caller
-    i.next(); 
+    i.next();
     let value = i.next();
     if value.is_none() {
         return Err(ParsingError::BadValueSpecifier(number + 1, text, value_name));
@@ -163,31 +148,28 @@ fn get_value<'a>(text: &'a str, number: usize, value_name: &'static str) -> Resu
     Ok(value)
 }
 
-fn get_token(text: &str) -> &str {
-    text.split_whitespace().next().unwrap_or("")
-}
+fn get_token(text: &str) -> &str { text.split_whitespace().next().unwrap_or("") }
 
 fn process_line(number: usize, text: &str) -> Result<ProcessedLine, ParsingError> {
     let active_text = remove_comment(text).trim();
     // ignore lines that have no content other than comments
     if active_text.is_empty() {
-        return Ok(ProcessedLine::NoOp { number, text});
+        return Ok(ProcessedLine::NoOp { number, text });
     }
-    let mut eit = active_text
-        .split(' ')
-        .filter(|x| !x.is_empty());
+    let mut eit = active_text.split(' ').filter(|x| !x.is_empty());
     let mut term = eit.next();
 
     // can this happen? We already checked for an empty line
     if term.is_none() {
         // text is empty, return a noop
-        return Ok(ProcessedLine::NoOp{ number, text });
+        return Ok(ProcessedLine::NoOp { number, text });
     }
 
     let mut mac: Option<&str> = None;
     lazy_static! {
         static ref MAC: Regex = Regex::new("^([0-9a-f]{2}:){5}[0-9a-f]{2}$").unwrap();
-        static ref IP: Regex = Regex::new(r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$").unwrap();
+        static ref IP: Regex =
+            Regex::new(r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$").unwrap();
     }
 
     // starting mac address is optional
@@ -200,8 +182,8 @@ fn process_line(number: usize, text: &str) -> Result<ProcessedLine, ParsingError
     if term.is_none() || !IP.is_match(term.unwrap()) {
         return match mac {
             None => Err(ParsingError::NoMacOrIp(number, text)),
-            _    => Err(ParsingError::NoIpAddress(number, text)),
-        }
+            _ => Err(ParsingError::NoIpAddress(number, text)),
+        };
     }
     let ip = term.unwrap();
 
@@ -215,7 +197,7 @@ fn process_line(number: usize, text: &str) -> Result<ProcessedLine, ParsingError
 #[cfg(test)]
 mod tests {
 
-    use super::{ process_line, remove_comment, ParsingError };
+    use super::{process_line, remove_comment, ParsingError};
 
     macro_rules! assert_err {
         ($expression:expr, $($pattern:tt)+) => {

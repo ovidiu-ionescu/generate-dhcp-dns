@@ -1,11 +1,11 @@
 #![feature(format_args_capture)]
 #![feature(stmt_expr_attributes)]
 
+mod create_dhcp_config;
 mod create_dns_config;
 mod create_reverse_dns_config;
-mod create_dhcp_config;
 mod parser;
-use parser::{parse, ProcessedLine, ParsedInfo};
+use parser::{parse, ParsedInfo, ProcessedLine};
 mod validation;
 use validation::validate;
 
@@ -22,4 +22,3 @@ fn create_output_files(parsed_info: &ParsedInfo) -> Result<(), Box<dyn std::erro
     create_dhcp_config::write_reverse_dns_config(parsed_info)?;
     Ok(())
 }
-

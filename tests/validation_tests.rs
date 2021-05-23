@@ -1,13 +1,6 @@
 use ::generate_dhcp_dns::principal;
 use indoc::indoc;
-
-macro_rules! check_err {
-    ($val:expr, $msg:literal) => {{
-        let res = &$val;
-        assert!(res.is_err());
-        assert_eq!($msg, res.as_ref().unwrap_err().to_string());
-    }};
-}
+mod common;
 
 #[test]
 fn test_duplicate_ip() {

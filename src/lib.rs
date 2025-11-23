@@ -1,24 +1,18 @@
-#![feature(format_args_capture)]
-#![feature(stmt_expr_attributes)]
-
-mod create_dhcp_config;
+mod parser;
+mod validation;
 mod create_dns_config;
 mod create_reverse_dns_config;
-mod parser;
-use parser::{parse, ParsedInfo, ProcessedLine};
-mod validation;
-use validation::validate;
+mod create_dhcp_config;
 
-pub fn principal(content: &str) -> Result<(), Box<dyn std::error::Error + '_>> {
-    let parsed_info = parse(content)?;
-    validate(&parsed_info)?;
-    create_output_files(&parsed_info)?;
-    Ok(())
+pub fn process<'a>(input: &'a str, input_file_name: &'a str, output_dir: &'a str) -> Result<(), Box<dyn std::error::Error + 'a>> {
+  let parsed_info = parser::parser(input)?;
+  println!("✓ Parsed configuration file 「{}」", input_file_name);
+  //println!("{:#?}", parsed_info);
+  validation::validate(&parsed_info)?;
+  println!("✓ Validated configuration file 「{}」", input_file_name);
+  create_dns_config::write_dns_config(&parsed_info, output_dir)?;
+  create_reverse_dns_config::write_reverse_dns_config(&parsed_info, output_dir)?;
+  create_dhcp_config::write_dhcp_config(&parsed_info, output_dir)?;
+  Ok(())
 }
 
-fn create_output_files(parsed_info: &ParsedInfo) -> Result<(), Box<dyn std::error::Error>> {
-    create_dns_config::write_dns_config(parsed_info)?;
-    create_reverse_dns_config::write_reverse_dns_config(parsed_info)?;
-    create_dhcp_config::write_reverse_dns_config(parsed_info)?;
-    Ok(())
-}

@@ -1,1 +1,5 @@
 /target
+/lib
+Cargo.lock
+/generated
+/Bk

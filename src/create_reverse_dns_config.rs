@@ -1,28 +1,34 @@
 /// Create the reverse DNS config file for bind
 use std::{
-    fs::File,
-    io::{BufWriter, Write},
+  fs::File,
+  io::{BufWriter, Write},
 };
 
-use crate::{ParsedInfo, ProcessedLine};
+use crate::parser::{Line, ParsedInfo};
 
-pub fn write_reverse_dns_config(parsed_info: &ParsedInfo) -> Result<(), Box<dyn std::error::Error>> {
-    let file = File::create("./db.0.0.10").unwrap();
-    let mut out = BufWriter::new(&file);
+pub fn write_reverse_dns_config(
+  parsed_info: &ParsedInfo, output_dir: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+  std::fs::create_dir_all(output_dir)?;
+  let mut path = std::path::PathBuf::from(output_dir);
+  path.push(parsed_info.reverse_dns_file_name);
 
-    // write the prefix
-    parsed_info.dns_prefix.iter().try_for_each(|text| writeln!(out, "{}", text))?;
+  let file = File::create(&path)?;
+  let mut out = BufWriter::new(&file);
 
-    for line in &parsed_info.ip_lines {
-        if let ProcessedLine::Line { ip, names, .. } = line {
-            let name = names[0];
-            let addr = ip.rsplit('.').next().unwrap();
-            if name == "@" {
-                writeln!(out, "{addr:3} IN PTR {}.", parsed_info.domain)?;
-            } else {
-                writeln!(out, "{addr:3} IN PTR {name}.{}.", parsed_info.domain)?;
-            }
-        }
+  // write the prefix
+  writeln!(out, "{}", parsed_info.dns_prefix)?;
+
+  for line in &parsed_info.ip_lines {
+    let Line { ip, names, .. } = line;
+    let name = names[0];
+    let addr = ip.rsplit('.').next().unwrap();
+    if name == "@" {
+      writeln!(out, "{addr:3} IN PTR {}.", parsed_info.domain)?;
+    } else {
+      writeln!(out, "{addr:3} IN PTR {name}.{}.", parsed_info.domain)?;
     }
-    Ok(())
+  }
+  println!("✓ Reverse DNS config written to 「{}」", path.display());
+  Ok(())
 }

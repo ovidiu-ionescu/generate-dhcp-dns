@@ -1,15 +1,22 @@
-#![feature(format_args_capture)]
-use std::fs;
+use clap::Parser as ClapParser;
 
-use ::generate_dhcp_dns::principal;
+use ::orgncf_generator::process;
 
-// the data string is never discarded, leak it and make it static
-fn string_to_static_str(s: String) -> &'static str { Box::leak(s.into_boxed_str()) }
+#[derive(ClapParser, Debug)]
+struct Args {
+  /// Input file
+  #[clap(short, long)]
+  input: String,
+  #[clap(short, long, default_value = ".")]
+  output_dir: String,
+}
 
 fn main() {
-    let file_name = "netconfig.ncf";
-    let content = string_to_static_str(fs::read_to_string(file_name).unwrap());
-    if let Err(e) = principal(content) {
-        eprintln!("Error parsing file {}: {}", file_name, e);
-    }
+  let args = Args::parse();
+  // read the input file into a string
+  let input = std::fs::read_to_string(&args.input).expect("Failed to read input file");
+  if let Err(e) = process(&input, &args.input, &args.output_dir) {
+    eprintln!("Error parsing file {}: {}", args.input, e);
+  }
 }
+

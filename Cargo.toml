@@ -7,7 +7,7 @@ edition = "2024"
 clap = { version = "4.5.53", features = ["derive"] }
 thiserror = "2.0.17"
 tree-sitter = "0.25.10"
-tree-sitter-orgncf = { path = "../tree-sitter-orgncf" }
+tree-sitter-orgncf = { git = "https://github.com/ovidiu-ionescu/tree-sitter-orgncf", branch = "master" }
 
 [dev-dependencies]
 indoc = "2.0.7"

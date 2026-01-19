@@ -1,5 +1,7 @@
 # orgncf-generator
 
+Moved to [bind9-lan](https://github.com/ovidiu-ionescu/bind9-lan)
+
 Can generate a DNS zone file a DHCP ip reservation file starting from a
 orgncf configuration file.
 
